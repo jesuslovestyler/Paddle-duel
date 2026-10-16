@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Paddle Duel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Rubik:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --page-bg: #eef1f6;
+        --page-ink: #131a2a;
+        --page-soft: #4a5872;
+        --card-bg: #ffffff;
+        --card-line: #d7deeb;
+        --court-bg: #070b18;
+        --accent: #0e7490;
+        --gold: #f5b81d;
+        --gold-deep: #c98f04;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page-bg: #0b0f1c;
+          --page-ink: #eef2ff;
+          --page-soft: #9aa7c7;
+          --card-bg: #131a2e;
+          --card-line: #263252;
+          --accent: #22d3ee;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--page-bg);
+        color: var(--page-ink);
+        font-family: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 14px 14px 34px;
+      }
+
+      /* ---------- HUD ---------- */
+      .hud {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .side { min-width: 0; }
+      .side.right { text-align: right; }
+      .side .name {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--page-soft);
+      }
+      .side .score {
+        font-family: "Orbitron", "Rubik", sans-serif;
+        font-size: 54px;
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .side.you .score { color: #0891b2; }
+      .side.cpu .score { color: #db2777; }
+      @media (prefers-color-scheme: dark) {
+        .side.you .score { color: #22d3ee; }
+        .side.cpu .score { color: #f472b6; }
+      }
+      .hud-mid { text-align: center; padding-bottom: 6px; }
+      .hud-mid .to {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--page-soft);
+        white-space: nowrap;
+      }
+      .speed-wrap { margin-top: 6px; }
+      .speed-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--page-soft);
+      }
+      .speed-bar {
+        width: 92px;
+        height: 7px;
+        margin: 3px auto 0;
+        border-radius: 99px;
+        background: var(--card-line);
+        overflow: hidden;
+      }
+      .speed-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #22d3ee, #f5b81d, #f43f5e);
+        transition: width 120ms linear;
+      }
+
+      .message {
+        min-height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 19px;
+        font-weight: 700;
+        margin: 2px 0 10px;
+      }
+      .message.flash { animation: pulse 0.55s ease-in-out infinite alternate; }
+      @keyframes pulse { from { opacity: 0.45; } to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) {
+        .message.flash { animation: none; }
+      }
+
+      /* ---------- Court ---------- */
+      .stage {
+        position: relative;
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--court-bg);
+        box-shadow: 0 14px 34px rgba(4, 8, 24, 0.35), inset 0 0 0 2px rgba(56, 189, 248, 0.25);
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        aspect-ratio: 420 / 620;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        cursor: ew-resize;
+      }
+
+      /* ---------- End card ---------- */
+      .endcard {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(4, 7, 18, 0.78);
+      }
+      .endcard.show { display: flex; }
+      .endcard .card {
+        width: 100%;
+        max-width: 340px;
+        max-height: 100%;
+        overflow-y: auto;
+        background: #0d1430;
+        border: 2px solid rgba(245, 184, 29, 0.55);
+        border-radius: 16px;
+        padding: 22px 20px 20px;
+        text-align: center;
+        color: #eef2ff;
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+      }
+      .endcard .big {
+        font-family: "Orbitron", "Rubik", sans-serif;
+        font-size: 27px;
+        font-weight: 800;
+        line-height: 1.25;
+        margin: 0 0 8px;
+      }
+      .endcard .final {
+        font-size: 17px;
+        font-weight: 600;
+        color: #b9c6e8;
+        margin: 0 0 18px;
+      }
+      .endcard .final b { color: #fff; font-size: 21px; }
+      .play-again {
+        display: block;
+        width: 100%;
+        border: none;
+        border-radius: 12px;
+        padding: 16px 12px;
+        font-family: "Rubik", sans-serif;
+        font-size: 19px;
+        font-weight: 700;
+        color: #241a00;
+        background: linear-gradient(180deg, #ffd94d, var(--gold));
+        box-shadow: 0 5px 0 var(--gold-deep), 0 10px 22px rgba(245, 184, 29, 0.35);
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      .play-again:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--gold-deep); }
+
+      /* ---------- Controls ---------- */
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .controls button {
+        flex: 1;
+        border: 2px solid var(--card-line);
+        background: var(--card-bg);
+        color: var(--page-ink);
+        border-radius: 12px;
+        padding: 13px 10px;
+        font-family: "Rubik", sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      .controls button:active { transform: translateY(1px); }
+
+      /* ---------- How to play ---------- */
+      .howto {
+        margin-top: 22px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-line);
+        border-radius: 14px;
+        padding: 18px 18px 8px;
+      }
+      .howto h2 {
+        margin: 0 0 10px;
+        font-size: 19px;
+        font-weight: 700;
+      }
+      .howto p, .howto li { font-size: 15.5px; line-height: 1.55; color: var(--page-ink); }
+      .howto ul { margin: 0 0 10px; padding-left: 20px; }
+      .howto li { margin-bottom: 7px; }
+      .howto .key {
+        display: inline-block;
+        border: 1px solid var(--card-line);
+        border-bottom-width: 3px;
+        border-radius: 6px;
+        padding: 0 7px;
+        font-weight: 700;
+        font-size: 13.5px;
+        background: var(--page-bg);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="hud" aria-label="Score">
+        <div class="side you">
+          <div class="name">You</div>
+          <div class="score" id="scoreYou">0</div>
+        </div>
+        <div class="hud-mid">
+          <div class="to">First to 7</div>
+          <div class="speed-wrap">
+            <div class="speed-label">Rally speed</div>
+            <div class="speed-bar"><div class="speed-fill" id="speedFill"></div></div>
+          </div>
+        </div>
+        <div class="side right cpu">
+          <div class="name">CPU</div>
+          <div class="score" id="scoreCpu">0</div>
+        </div>
+      </div>
+
+      <div class="message" id="message" role="status">Drag to move your paddle</div>
+
+      <div class="stage" id="stage">
+        <canvas id="court" width="420" height="620" aria-label="Paddle Duel court. Drag left and right to move your paddle."></canvas>
+        <div class="endcard" id="endcard">
+          <div class="card">
+            <p class="big" id="endTitle">🏆 You win the duel!</p>
+            <p class="final" id="endFinal">Final score — You <b>7</b> · CPU <b>3</b></p>
+            <button class="play-again" id="playAgain" type="button">▶ Play again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="muteBtn" type="button" aria-pressed="false">🔊 Sound on</button>
+        <button id="restartBtn" type="button">↻ Restart match</button>
+      </div>
+
+      <section class="howto">
+        <h2>How to play</h2>
+        <ul>
+          <li><strong>Drag anywhere</strong> on the court (finger or mouse) to slide your glowing paddle along the bottom. It follows your finger exactly — no lag, no drift.</li>
+          <li>On a keyboard, use the <span class="key">←</span> and <span class="key">→</span> arrow keys.</li>
+          <li>The ball bounces off the side walls and both paddles. <strong>Where it hits your paddle sets the angle</strong> — clip the edge to fire a sharp shot, meet it dead-center to send it straight back.</li>
+          <li>Every paddle hit makes the ball a little faster. It resets when a point is scored.</li>
+          <li>A point is scored when the ball slips past a paddle. <strong>First to 7 wins the duel.</strong></li>
+          <li>Watch out: the CPU reads the ball faster as your score climbs, so the last points are the hardest to earn.</li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /* ============ Court geometry (logical units) ============ */
+        var W = 420, H = 620;
+        var PADDLE_W = 88, PADDLE_H = 13, PADDLE_R = 7;
+        var PLAYER_Y = H - 34;          // top edge of player paddle
+        var CPU_Y = 21;                 // top edge of CPU paddle
+        var BALL_R = 9;
+        var WIN_SCORE = 7;
+        var BASE_SPEED = 265;           // logical px per second
+        var MAX_SPEED = 640;
+        var SPEED_UP = 1.055;           // per paddle hit
+        var SERVE_MS = 950;
+
+        var canvas = document.getElementById("court");
+        var ctx = canvas.getContext("2d");
+        var scoreYouEl = document.getElementById("scoreYou");
+        var scoreCpuEl = document.getElementById("scoreCpu");
+        var speedFill = document.getElementById("speedFill");
+        var messageEl = document.getElementById("message");
+        var endcard = document.getElementById("endcard");
+        var endTitle = document.getElementById("endTitle");
+        var endFinal = document.getElementById("endFinal");
+
+        /* Crisp rendering on high-DPI phones */
+        function fitCanvas() {
+          var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+          canvas.width = Math.round(W * dpr);
+          canvas.height = Math.round(H * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        fitCanvas();
+        window.addEventListener("resize", fitCanvas);
+
+        /* ============ Sound (WebAudio) ============ */
+        var audioCtx = null;
+        var muted = false;
+        function ensureAudio() {
+          if (!audioCtx) {
+            var AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) audioCtx = new AC();
+          }
+          if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        }
+        function tone(freq, dur, type, vol, when, slideTo) {
+          if (muted || !audioCtx) return;
+          var t0 = audioCtx.currentTime + (when || 0);
+          var osc = audioCtx.createOscillator();
+          var gain = audioCtx.createGain();
+          osc.type = type || "square";
+          osc.frequency.setValueAtTime(freq, t0);
+          if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+          gain.gain.setValueAtTime(vol || 0.12, t0);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.02);
+        }
+        var sfx = {
+          paddle: function () { tone(520, 0.07, "square", 0.10); },
+          wall:   function () { tone(240, 0.05, "square", 0.07); },
+          score:  function (good) {
+            if (good) { tone(660, 0.10, "triangle", 0.14); tone(880, 0.16, "triangle", 0.14, 0.09); }
+            else      { tone(330, 0.12, "triangle", 0.13); tone(220, 0.20, "triangle", 0.13, 0.10); }
+          },
+          win: function () {
+            var notes = [523, 659, 784, 1047];
+            for (var i = 0; i < notes.length; i++) tone(notes[i], 0.18, "triangle", 0.15, i * 0.13);
+          },
+          lose: function () {
+            var notes = [392, 330, 262, 196];
+            for (var i = 0; i < notes.length; i++) tone(notes[i], 0.20, "triangle", 0.14, i * 0.14);
+          }
+        };
+
+        /* ============ Game state ============ */
+        var state = "serve";            // serve | play | over
+        var serveUntil = 0;
+        var serveMsg = "";
+        var serveReadyShown = false;
+        var serveToward = 1;            // 1 = toward player (down), -1 = toward CPU
+        var scoreYou = 0, scoreCpu = 0;
+        var rallyHits = 0;
+
+        var player = { x: W / 2, targetX: W / 2 };
+        var cpu = { x: W / 2 };
+        var ball = { x: W / 2, y: H / 2, vx: 0, vy: 0, speed: BASE_SPEED };
+        var keys = { left: false, right: false };
+
+        function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+        function setMessage(text, flash) {
+          messageEl.textContent = text;
+          messageEl.className = "message" + (flash ? " flash" : "");
+        }
+
+        function updateHud() {
+          scoreYouEl.textContent = scoreYou;
+          scoreCpuEl.textContent = scoreCpu;
+          var pct = clamp(((ball.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED)) * 100, 0, 100);
+          speedFill.style.width = pct.toFixed(0) + "%";
+        }
+
+        function startServe(toward) {
+          state = "serve";
+          serveToward = toward;
+          serveUntil = performance.now() + SERVE_MS;
+          serveReadyShown = false;
+          ball.x = W / 2; ball.y = H / 2;
+          ball.vx = 0; ball.vy = 0;
+          ball.speed = BASE_SPEED;
+          rallyHits = 0;
+          setMessage("Ready…", true);
+          updateHud();
+        }
+
+        function launchBall() {
+          var angle = (Math.random() * 0.6 - 0.3); // radians off vertical
+          ball.speed = BASE_SPEED;
+          ball.vx = Math.sin(angle) * ball.speed;
+          ball.vy = Math.cos(angle) * ball.speed * serveToward;
+          state = "play";
+          setMessage(serveToward === 1 ? "Your serve — defend the bottom!" : "CPU serves — get ready!", false);
+        }
+
+        function resetMatch() {
+          scoreYou = 0; scoreCpu = 0;
+          player.x = player.targetX = W / 2;
+          cpu.x = W / 2;
+          endcard.className = "endcard";
+          serveMsg = "";
+          startServe(Math.random() < 0.5 ? 1 : -1);
+          setMessage("Ready…", true);
+          updateHud();
+        }
+
+        function endMatch(playerWon) {
+          state = "over";
+          endTitle.textContent = playerWon ? "🏆 You win the duel!" : "The CPU takes it";
+          endFinal.innerHTML = "Final score — You <b>" + scoreYou + "</b> · CPU <b>" + scoreCpu + "</b>";
+          endcard.className = "endcard show";
+          setMessage(playerWon ? "Champion! 🏆" : "Good duel — run it back!", false);
+          if (playerWon) sfx.win(); else sfx.lose();
+        }
+
+        function scorePoint(playerScored) {
+          if (playerScored) { scoreYou++; sfx.score(true); }
+          else { scoreCpu++; sfx.score(false); }
+          updateHud();
+          if (scoreYou >= WIN_SCORE) { endMatch(true); return; }
+          if (scoreCpu >= WIN_SCORE) { endMatch(false); return; }
+          startServe(playerScored ? -1 : 1); // loser receives the next serve
+          // Show the point first; the Ready… flash takes over mid-pause (see step()).
+          serveMsg = playerScored ? "Point to you! 🎉" : "Point to the CPU";
+          setMessage(serveMsg, false);
+        }
+
+        /* ============ Input: 1:1 pointer drag ============ */
+        function pointerToCourtX(clientX) {
+          var rect = canvas.getBoundingClientRect();
+          return clamp(((clientX - rect.left) / rect.width) * W, PADDLE_W / 2, W - PADDLE_W / 2);
+        }
+        var dragging = false;
+        canvas.addEventListener("pointerdown", function (e) {
+          ensureAudio();
+          dragging = true;
+          try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+          player.targetX = pointerToCourtX(e.clientX);
+          player.x = player.targetX;
+          e.preventDefault();
+        });
+        canvas.addEventListener("pointermove", function (e) {
+          if (!dragging) return;
+          player.targetX = pointerToCourtX(e.clientX);
+          player.x = player.targetX; // exact 1:1 follow — no easing, no offset
+          e.preventDefault();
+        });
+        function endDrag(e) { dragging = false; }
+        canvas.addEventListener("pointerup", endDrag);
+        canvas.addEventListener("pointercancel", endDrag);
+
+        window.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowLeft") { keys.left = true; ensureAudio(); e.preventDefault(); }
+          else if (e.key === "ArrowRight") { keys.right = true; ensureAudio(); e.preventDefault(); }
+        });
+        window.addEventListener("keyup", function (e) {
+          if (e.key === "ArrowLeft") keys.left = false;
+          else if (e.key === "ArrowRight") keys.right = false;
+        });
+
+        /* ============ AI ============ */
+        function moveCpu(dt) {
+          // Reaction speed rises with the player's score: late points are earned.
+          var maxSpeed = 205 + scoreYou * 52;      // logical px / second
+          var target;
+          if (ball.vy < 0) {
+            // Ball coming at the CPU: track it, with a small human-ish wobble.
+            target = ball.x + Math.sin(performance.now() / 240) * (10 - scoreYou);
+          } else {
+            target = W / 2 + (ball.x - W / 2) * 0.25; // drift back toward middle
+          }
+          var dx = target - cpu.x;
+          var step = clamp(dx, -maxSpeed * dt, maxSpeed * dt);
+          cpu.x = clamp(cpu.x + step, PADDLE_W / 2, W - PADDLE_W / 2);
+        }
+
+        /* ============ Physics ============ */
+        function bounceOffPaddle(paddleX, fromTop) {
+          var offset = clamp((ball.x - paddleX) / (PADDLE_W / 2), -1, 1);
+          var maxAngle = 1.13; // ~65 degrees from vertical
+          var angle = offset * maxAngle;
+          ball.speed = Math.min(ball.speed * SPEED_UP, MAX_SPEED);
+          ball.vx = Math.sin(angle) * ball.speed;
+          ball.vy = Math.cos(angle) * ball.speed * (fromTop ? 1 : -1);
+          rallyHits++;
+          sfx.paddle();
+          updateHud();
+        }
+
+        function step(dt) {
+          // Keyboard movement
+          var keySpeed = 460;
+          if (keys.left)  player.x = clamp(player.x - keySpeed * dt, PADDLE_W / 2, W - PADDLE_W / 2);
+          if (keys.right) player.x = clamp(player.x + keySpeed * dt, PADDLE_W / 2, W - PADDLE_W / 2);
+          if (keys.left || keys.right) player.targetX = player.x;
+
+          moveCpu(dt);
+
+          if (state === "serve") {
+            var nowMs = performance.now();
+            if (serveMsg && !serveReadyShown && nowMs >= serveUntil - SERVE_MS / 2) {
+              serveReadyShown = true;
+              setMessage("Ready…", true);
+            }
+            if (nowMs >= serveUntil) launchBall();
+            return;
+          }
+          if (state !== "play") return;
+
+          ball.x += ball.vx * dt;
+          ball.y += ball.vy * dt;
+
+          // Side walls
+          if (ball.x < BALL_R) { ball.x = BALL_R; ball.vx = Math.abs(ball.vx); sfx.wall(); }
+          else if (ball.x > W - BALL_R) { ball.x = W - BALL_R; ball.vx = -Math.abs(ball.vx); sfx.wall(); }
+
+          // CPU paddle (top)
+          if (ball.vy < 0 &&
+              ball.y - BALL_R <= CPU_Y + PADDLE_H &&
+              ball.y - BALL_R >= CPU_Y - 6 &&
+              Math.abs(ball.x - cpu.x) <= PADDLE_W / 2 + BALL_R * 0.6) {
+            ball.y = CPU_Y + PADDLE_H + BALL_R;
+            bounceOffPaddle(cpu.x, true);
+          }
+
+          // Player paddle (bottom)
+          if (ball.vy > 0 &&
+              ball.y + BALL_R >= PLAYER_Y &&
+              ball.y + BALL_R <= PLAYER_Y + PADDLE_H + 6 &&
+              Math.abs(ball.x - player.x) <= PADDLE_W / 2 + BALL_R * 0.6) {
+            ball.y = PLAYER_Y - BALL_R;
+            bounceOffPaddle(player.x, false);
+          }
+
+          // Scoring
+          if (ball.y < -BALL_R - 4) scorePoint(true);
+          else if (ball.y > H + BALL_R + 4) scorePoint(false);
+        }
+
+        /* ============ Drawing ============ */
+        function roundRect(x, y, w, h, r) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.arcTo(x + w, y, x + w, y + h, r);
+          ctx.arcTo(x + w, y + h, x, y + h, r);
+          ctx.arcTo(x, y + h, x, y, r);
+          ctx.arcTo(x, y, x + w, y, r);
+          ctx.closePath();
+        }
+
+        function drawPaddle(cx, y, colorCore, colorGlow) {
+          ctx.save();
+          ctx.shadowColor = colorGlow;
+          ctx.shadowBlur = 18;
+          ctx.fillStyle = colorCore;
+          roundRect(cx - PADDLE_W / 2, y, PADDLE_W, PADDLE_H, PADDLE_R);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(255,255,255,0.75)";
+          roundRect(cx - PADDLE_W / 2 + 5, y + 3, PADDLE_W - 10, 3, 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        function draw() {
+          // Court
+          ctx.fillStyle = "#070b18";
+          ctx.fillRect(0, 0, W, H);
+
+          // Faint glow pools behind each end
+          var gTop = ctx.createRadialGradient(W / 2, 0, 10, W / 2, 0, 220);
+          gTop.addColorStop(0, "rgba(244,114,182,0.13)");
+          gTop.addColorStop(1, "rgba(244,114,182,0)");
+          ctx.fillStyle = gTop;
+          ctx.fillRect(0, 0, W, 230);
+          var gBot = ctx.createRadialGradient(W / 2, H, 10, W / 2, H, 220);
+          gBot.addColorStop(0, "rgba(34,211,238,0.15)");
+          gBot.addColorStop(1, "rgba(34,211,238,0)");
+          ctx.fillStyle = gBot;
+          ctx.fillRect(0, H - 230, W, 230);
+
+          // Border
+          ctx.strokeStyle = "rgba(125,211,252,0.35)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(1, 1, W - 2, H - 2);
+
+          // Dashed center line
+          ctx.save();
+          ctx.strokeStyle = "rgba(226,232,240,0.4)";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([14, 12]);
+          ctx.beginPath();
+          ctx.moveTo(10, H / 2);
+          ctx.lineTo(W - 10, H / 2);
+          ctx.stroke();
+          ctx.restore();
+
+          // Center circle accent
+          ctx.save();
+          ctx.strokeStyle = "rgba(226,232,240,0.22)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(W / 2, H / 2, 34, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+
+          drawPaddle(cpu.x, CPU_Y, "#f472b6", "#ec4899");
+          drawPaddle(player.x, PLAYER_Y, "#22d3ee", "#06b6d4");
+
+          // Ball (held at center during serve)
+          ctx.save();
+          ctx.shadowColor = "#facc15";
+          ctx.shadowBlur = 16;
+          ctx.fillStyle = "#fde047";
+          ctx.beginPath();
+          ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          ctx.beginPath();
+          ctx.arc(ball.x - 3, ball.y - 3, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        /* ============ Main loop ============ */
+        var last = performance.now();
+        function frame(now) {
+          var dt = Math.min((now - last) / 1000, 1 / 30);
+          last = now;
+          step(dt);
+          draw();
+          requestAnimationFrame(frame);
+        }
+
+        /* ============ Buttons ============ */
+        var muteBtn = document.getElementById("muteBtn");
+        muteBtn.addEventListener("click", function () {
+          ensureAudio();
+          muted = !muted;
+          muteBtn.textContent = muted ? "🔇 Sound off" : "🔊 Sound on";
+          muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
+        });
+        document.getElementById("restartBtn").addEventListener("click", function () {
+          ensureAudio();
+          resetMatch();
+        });
+        document.getElementById("playAgain").addEventListener("click", function () {
+          ensureAudio();
+          resetMatch();
+        });
+        // First tap anywhere warms up the audio context (mobile autoplay rules)
+        window.addEventListener("pointerdown", ensureAudio, { once: true });
+
+        resetMatch();
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>
