@@ -235,6 +235,25 @@
       .howto p, .howto li { font-size: 15.5px; line-height: 1.55; color: var(--page-ink); }
       .howto ul { margin: 0 0 10px; padding-left: 20px; }
       .howto li { margin-bottom: 7px; }
+      /* ---------- Home pill ---------- */
+      .topbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 8px;
+      }
+      .home-pill {
+        display: inline-block;
+        border: 1px solid var(--card-line);
+        background: var(--card-bg);
+        color: var(--page-ink);
+        border-radius: 99px;
+        padding: 6px 13px;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .home-pill:active { transform: translateY(1px); }
+
       .howto .key {
         display: inline-block;
         border: 1px solid var(--card-line);
@@ -249,6 +268,9 @@
   </head>
   <body>
     <main class="wrap">
+      <div class="topbar">
+        <a class="home-pill" href="https://jesuslovestyler.com/">⌂ Home</a>
+      </div>
       <div class="hud" aria-label="Score">
         <div class="side you">
           <div class="name">You</div>
@@ -689,5 +711,6 @@
         requestAnimationFrame(frame);
       })();
     </script>
+    <script data-goatcounter="https://jesuslovestyler.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   </body>
 </html>
