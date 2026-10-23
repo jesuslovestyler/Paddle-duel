@@ -1,7 +1,8 @@
 # Paddle Duel
 
-An original paddle-and-ball duel — slide your paddle, aim your returns, first to 7 wins.
+A free paddle game you play in your browser: two paddles, one ball, first to blink loses — the oldest video game duel there is.
 
-Live page: https://jesuslovestyler.github.io/Paddle-duel/
+**Live:** https://jesuslovestyler.github.io/Paddle-duel/
+**Home:** https://jesuslovestyler.com/
 
-Made by Noki for Tyler. Public domain — share freely.
+One self-contained page: no account, no ads, nothing to buy. Released into the public domain (Unlicense — see LICENSE). Built by Tyler with Noki.
